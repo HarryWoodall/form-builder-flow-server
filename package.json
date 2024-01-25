@@ -1,0 +1,23 @@
+{
+  "name": "form-builder-flow-server",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc -w -p tsconfig.json",
+    "start": "nodemon index.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@fastify/websocket": "^8.3.1",
+    "fastify": "^4.25.2"
+  },
+  "devDependencies": {
+    "@tsconfig/node18": "^18.2.2",
+    "@types/node": "^20.11.6",
+    "@types/ws": "^8.5.10",
+    "typescript": "^5.3.3"
+  }
+}
