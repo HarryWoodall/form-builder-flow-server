@@ -1,27 +1,18 @@
-import fastify from "fastify";
+import fastify, { FastifyRequest } from "fastify";
 import ws from "@fastify/websocket";
-import { WebSocket } from "ws";
+import webSocket, { broadcastData } from "./sockets";
+import { configDotenv } from "dotenv";
+import { ReusableElementRequest, LookupRequest } from "./types/requests";
+import fs from "fs";
+import cors from "@fastify/cors";
 
 const server = fastify();
-const port = 3000;
-const connectedSockets: Set<WebSocket> = new Set();
+const port = 3100;
+configDotenv();
 
 server.register(ws);
-server.register(async function (fastify) {
-  fastify.get("/*", { websocket: true }, (connection, request) => {
-    const { socket } = connection;
-    // const sessionPromise = request.getSession(); // example async session getter, called synchronously to return a promise
-
-    socket.on("close", () => {
-      connectedSockets.delete(socket);
-    });
-
-    socket.on("message", async (message) => {
-      console.log(message.toString());
-      connectedSockets.add(socket);
-    });
-  });
-});
+server.register(webSocket);
+server.register(cors);
 
 server.get("/ping", async (request, reply) => {
   broadcastData("message", "Broadcast");
@@ -30,9 +21,73 @@ server.get("/ping", async (request, reply) => {
 
 server.post("/updateForm", {
   handler(req, reply) {
-    // console.log(req.body);
     broadcastData("form", req.body);
-    reply.send({ ok: 1 });
+    reply.status(200);
+  },
+});
+
+server.get("/transformsAvailable", {
+  handler(req, reply) {
+    const formBuilderPath = process.env.FORM_BUILDER_JSON_PATH;
+    reply.send(formBuilderPath != undefined && fs.existsSync(formBuilderPath));
+  },
+});
+
+server.get("/reusableElement", {
+  handler(req: ReusableElementRequest, reply) {
+    const formBuilderPath = process.env.FORM_BUILDER_JSON_PATH;
+
+    if (!formBuilderPath) {
+      reply.status(405).send({ message: "Form builder path not found" });
+      return;
+    }
+
+    if (!req.query.element) {
+      reply.status(400).send({ message: "parameter 'element' is undefined" });
+      return;
+    }
+
+    const path = `${formBuilderPath}/Elements/${req.query.element}.json`;
+
+    if (!fs.existsSync(path)) {
+      reply.status(404).send({ message: `${path} not found` });
+      return;
+    }
+
+    const file = fs.readFileSync(path).toString();
+    reply.send(JSON.parse(file));
+  },
+});
+
+server.get("/lookup", {
+  handler(req: LookupRequest, reply) {
+    const formBuilderPath = process.env.FORM_BUILDER_JSON_PATH;
+
+    if (!formBuilderPath) {
+      reply.status(405).send({ message: "Form builder path not found" });
+      return;
+    }
+
+    if (!req.query.lookup) {
+      reply.status(400).send({ message: "parameter 'element' is undefined" });
+      return;
+    }
+
+    const path = `${formBuilderPath}/Lookups/${req.query.lookup}.json`;
+
+    if (!fs.existsSync(path)) {
+      reply.status(404).send({ message: `${path} not found` });
+      return;
+    }
+
+    let file = fs.readFileSync(path, "utf-8");
+
+    const UTF8_BOM = "\u{FEFF}";
+    if (file.startsWith(UTF8_BOM)) {
+      file = file.substring(UTF8_BOM.length);
+    }
+
+    reply.send(JSON.parse(file));
   },
 });
 
@@ -43,14 +98,3 @@ server.listen({ port: port }, (err, address) => {
   }
   console.log(`Server listening at ${address}`);
 });
-
-function broadcastData(type: "message" | "form", value: any) {
-  connectedSockets.forEach((socket) => {
-    socket.send(
-      JSON.stringify({
-        type: type,
-        value: value,
-      })
-    );
-  });
-}
