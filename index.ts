@@ -2,9 +2,10 @@ import fastify, { FastifyRequest } from "fastify";
 import ws from "@fastify/websocket";
 import webSocket, { broadcastData } from "./sockets";
 import { configDotenv } from "dotenv";
-import { ReusableElementRequest, LookupRequest } from "./types/requests";
+import { ReusableElementRequest, LookupRequest, FormListRequest, FormRequest } from "./types/requests";
 import fs from "fs";
 import cors from "@fastify/cors";
+import fuzzyMatch from "./helpers/search";
 
 const server = fastify();
 const port = 3100;
@@ -30,6 +31,69 @@ server.get("/transformsAvailable", {
   handler(req, reply) {
     const formBuilderPath = process.env.FORM_BUILDER_JSON_PATH;
     reply.send(formBuilderPath != undefined && fs.existsSync(formBuilderPath));
+  },
+});
+
+server.get("/formList", {
+  handler(req: FormListRequest, reply) {
+    const formBuilderPath = process.env.FORM_BUILDER_JSON_PATH;
+
+    if (!formBuilderPath) {
+      reply.status(405).send({ message: "Form builder path not found" });
+      return;
+    }
+
+    const path = `${formBuilderPath}/DSL`;
+
+    if (!fs.existsSync(path)) {
+      reply.status(404).send({ message: `${path} not found` });
+      return;
+    }
+
+    let files = fs.readdirSync(path, "utf-8").map((file) => {
+      return file.split(".")[0];
+    });
+
+    if (req.query.search) {
+      files = files.filter((file) => fuzzyMatch(req.query.search as string, file));
+    }
+
+    reply.send(files);
+  },
+});
+
+server.get("/form", {
+  handler(req: FormRequest, reply) {
+    const formBuilderPath = process.env.FORM_BUILDER_JSON_PATH;
+
+    if (!formBuilderPath) {
+      reply.status(405).send({ message: "Form builder path not found" });
+      return;
+    }
+
+    if (!req.query.name) {
+      reply.status(400).send({ message: "No name given" });
+      return;
+    }
+
+    const path = `${formBuilderPath}/DSL/${req.query.name}.json`;
+
+    if (!fs.existsSync(path)) {
+      reply.status(404).send({ message: `${path} not found` });
+      return;
+    }
+
+    let file = fs.readFileSync(path, "utf-8");
+
+    const UTF8_BOM = "\u{FEFF}";
+    if (file.startsWith(UTF8_BOM)) {
+      file = file.substring(UTF8_BOM.length);
+    }
+
+    const regex = new RegExp(/"AuthToken":.+"/, "g");
+    file = file.replace(regex, `"AuthToken": "<AUTH_TOKEN>"`);
+
+    reply.send(JSON.parse(file));
   },
 });
 
