@@ -2,10 +2,20 @@ import fastify, { FastifyRequest } from "fastify";
 import ws from "@fastify/websocket";
 import webSocket, { broadcastData } from "./sockets";
 import { configDotenv } from "dotenv";
-import { ReusableElementRequest, LookupRequest, FormListRequest, FormRequest } from "./types/requests";
+import {
+  ReusableElementRequest,
+  LookupRequest,
+  FormListRequest,
+  FormRequest,
+  DeleteNoteRequest,
+  FormNotesRequest,
+  FormNotesUpdateRequest,
+} from "./types/requests";
 import fs from "fs";
 import cors from "@fastify/cors";
 import fuzzyMatch from "./helpers/search";
+import { createNote, removeNote, removeAllNotes, readAllFormNotes, removeAllFormNotes, updateNote } from "./repositories/noteRepository.js";
+import { Note } from "./types/notes";
 
 const server = fastify();
 const port = 3100;
@@ -152,6 +162,50 @@ server.get("/lookup", {
     }
 
     reply.send(JSON.parse(file));
+  },
+});
+
+server.get("/getFormNotes", {
+  async handler(req: FormNotesRequest, reply) {
+    const data = await readAllFormNotes(req.query.formName);
+    reply.send(data);
+  },
+});
+
+server.post("/addNote", {
+  async handler(req, reply) {
+    req.body;
+    const note = await createNote(req.body as Note);
+    reply.send(note);
+  },
+});
+
+server.post("/updateNote", {
+  async handler(req: FormNotesUpdateRequest, reply) {
+    const updatedNote = await updateNote(req.body.note, req.body.id);
+    reply.send(updatedNote);
+  },
+});
+
+server.get("/clearAllNotes", {
+  async handler(req: ReusableElementRequest, reply) {
+    await removeAllNotes();
+    reply.send("Done");
+  },
+});
+
+server.get("/clearAllFormNotes", {
+  async handler(req: FormNotesRequest, reply) {
+    await removeAllFormNotes(req.query.formName);
+    reply.send("Done");
+  },
+});
+
+server.get("/deleteNote", {
+  async handler(req: DeleteNoteRequest, reply) {
+    console.log(req.query.noteId);
+    await removeNote(req.query.noteId);
+    reply.send("Deleted");
   },
 });
 
