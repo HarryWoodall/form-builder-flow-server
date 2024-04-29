@@ -1,6 +1,7 @@
 import fastify, { FastifyRequest } from "fastify";
 import ws from "@fastify/websocket";
 import webSocket, { broadcastData } from "./sockets";
+import validators from "./validatorEndpoints";
 import { configDotenv } from "dotenv";
 import {
   ReusableElementRequest,
@@ -23,6 +24,7 @@ configDotenv();
 
 server.register(ws);
 server.register(webSocket);
+server.register(validators);
 server.register(cors);
 
 server.get("/ping", async (request, reply) => {
@@ -216,3 +218,7 @@ server.listen({ port: port }, (err, address) => {
   }
   console.log(`Server listening at ${address}`);
 });
+
+module.exports = {
+  server: server,
+};

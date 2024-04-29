@@ -15,8 +15,10 @@
     "@fastify/cors": "^9.0.0",
     "@fastify/websocket": "^8.3.1",
     "@types/lowdb": "^1.0.15",
+    "@types/spellchecker": "^3.5.2",
     "fastify": "^4.25.2",
     "lowdb": "^7.0.1",
+    "spellchecker": "^3.7.1",
     "uuid": "^9.0.1"
   },
   "devDependencies": {
