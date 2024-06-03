@@ -28,23 +28,3 @@ export type FormNotesUpdateRequest = FastifyRequest<{
 export type DeleteNoteRequest = FastifyRequest<{
   Querystring: { noteId: string };
 }>;
-
-export type SpellcheckPageRequest = FastifyRequest<{
-  Body: {
-    Title?: string;
-    BannerTitle?: string;
-    LeadingParagraph?: string;
-    Elements?: {
-      QuestionId?: string;
-      Label?: string;
-      Text?: string;
-      Hint?: string;
-      IAG?: string;
-      CustomValidationMessage?: string;
-      SummaryLabel?: string;
-      Options?: {
-        Text?: string;
-      }[];
-    }[];
-  };
-}>;
