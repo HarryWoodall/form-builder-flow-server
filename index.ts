@@ -1,7 +1,7 @@
 import fastify, { FastifyRequest } from "fastify";
 import ws from "@fastify/websocket";
 import webSocket, { broadcastData } from "./sockets";
-import validators from "./validatorEndpoints";
+import validators from "./routes/validatorEndpoints";
 import { configDotenv } from "dotenv";
 import {
   ReusableElementRequest,
